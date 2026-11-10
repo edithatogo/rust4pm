@@ -27,8 +27,12 @@ jobs:
           fi
           git fetch --depth=1 https://github.com/aarkue/rust4pm.git refs/heads/main
           upstream=$(git rev-parse FETCH_HEAD)
-          git switch --detach "$upstream"
-          git switch -c "$branch"
+          # The GitHub App has contents:write but not workflows:write.
+          # Build a provenance-labelled source snapshot without copying upstream
+          # workflow paths/history; this avoids granting new permissions.
+          git switch --orphan "$branch"
+          git archive "$upstream" | tar -x --exclude='./.github/workflows/*' --exclude='.github/workflows/*'
+          rm -rf .github/workflows
           python3 - <<'PY'
           from pathlib import Path
           p=Path('process_mining/Cargo.toml')
@@ -39,8 +43,10 @@ jobs:
           PY
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add process_mining/Cargo.toml
-          git commit -m 'fix(security): require quick-xml 0.41 for Rust4PM validation'
+          printf '\nPatched source snapshot from aarkue/rust4pm commit %s; upstream MIT OR Apache-2.0 licence preserved.\n' "$upstream" > MAILWEFT-SOURCE-PROVENANCE.txt
+          git add -A
+          test -z "$(git ls-files '.github/workflows/*')"
+          git commit -m "fix(security): snapshot upstream $upstream and require quick-xml 0.41"
           git push origin "HEAD:refs/heads/$branch"
           echo "Upstream source commit $upstream" >> "$GITHUB_STEP_SUMMARY"
           echo 'No upstream source history overwritten. Security branch requires compilation and further review.' >> "$GITHUB_STEP_SUMMARY"
