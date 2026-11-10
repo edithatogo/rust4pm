@@ -1,0 +1,46 @@
+name: Prepare temporary Rust4PM quick-xml security branch
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/mailweft-security-bootstrap.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  bootstrap:
+    if: github.repository == 'edithatogo/rust4pm'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Create non-forced patched upstream source branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch='security/quick-xml-0.41-mailweft'
+          if git ls-remote --exit-code origin "refs/heads/$branch" >/dev/null 2>&1; then
+            echo 'Branch already exists. No overwrites.'
+            exit 0
+          fi
+          git fetch --depth=1 https://github.com/aarkue/rust4pm.git refs/heads/main
+          upstream=$(git rev-parse FETCH_HEAD)
+          git switch --detach "$upstream"
+          git switch -c "$branch"
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('process_mining/Cargo.toml')
+          s=p.read_text()
+          old='quick-xml = { version = "0.37.4" }'
+          assert s.count(old)==1, 'upstream dependency changed, review required'
+          p.write_text(s.replace(old, 'quick-xml = { version = "0.41.0" }'))
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add process_mining/Cargo.toml
+          git commit -m 'fix(security): require quick-xml 0.41 for Rust4PM validation'
+          git push origin "HEAD:refs/heads/$branch"
+          echo "Upstream source commit $upstream" >> "$GITHUB_STEP_SUMMARY"
+          echo 'No upstream source history overwritten. Security branch requires compilation and further review.' >> "$GITHUB_STEP_SUMMARY"
