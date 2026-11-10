@@ -1,0 +1,2 @@
+
+Patched source snapshot from aarkue/rust4pm commit d23281003d816389429160fe5aca55b0a92a98c9; upstream MIT OR Apache-2.0 licence preserved.
