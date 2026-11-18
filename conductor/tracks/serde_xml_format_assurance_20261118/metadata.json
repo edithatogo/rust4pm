@@ -1,0 +1,13 @@
+{
+  "track_id": "serde_xml_format_assurance_20261118",
+  "type": "dependency_qualification",
+  "status": "new",
+  "created_at": "2026-11-18",
+  "updated_at": "2026-11-18",
+  "description": "Rust4PM process_mining already uses serde derive, serde_json, serde_with and schemars; quick-xml and CSV remain essential format parsers and not Serde-replacement candidates.",
+  "verification": {
+    "status": "not_run",
+    "commands": []
+  },
+  "capability_status": "planning_only"
+}
